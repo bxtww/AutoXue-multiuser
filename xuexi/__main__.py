@@ -1,21 +1,19 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
 """
-@project: AutoXue
+@project: AutoXue-multiuser
 @file: __main__.py
-@author: kessil
-@contact: https://github.com/kessil/AutoXue/
-@time: 2019-10-26(星期六) 10:22
-@Copyright © 2019. All rights reserved.
+@time: 2020年9月29日10:55:28
+@Copyright © 2020. All rights reserved.
 """
-import subprocess
-from argparse import ArgumentParser
-import time
-from . import App
-from .unit import logger, caps
-from .secureRandom import SecureRandom as random
 import sys
-from xuexi.updateTiku import Tiku
+import time
+
+
+from . import App
+from .secureRandom import SecureRandom as random
+from .unit import logger, usernames
+
 
 # parse = ArgumentParser(description="Accept username and password if necessary!")
 #
@@ -35,60 +33,87 @@ def shuffle(funcs):
 def start():
     logger.debug(f'视听学习置后')
     app.music()
-    shuffle([app.daily, app.challenge, app.read, app.weekly])
+    # app.poem()
+    shuffle([app.daily, app.challenge, app.zhengshangyou, app.shuangrenduizhan, app.special, app.read, app.weekly])
     app.view_score()
     app.watch()
     app.logout_or_not()
-    app.driver.close_app()
+    # app.driver.close_app()
+    # app.driver.session.clear()
     # app.driver.quit()
 
 
+def connect_error(exMess):
+    if "An unknown server-side error occurred while processing the command" in exMess:
+        return True
+    else:
+        return False
+
+
 def test():
-    app.weekly()
+    # app.CodePic_to_phone("./BarcodePic/二维码.png", "/system/temp/二维码.png")
+    # # logger.info(f'传输照片到手机成功')
+    # app.scan_barcode()
+    # app.challenge_test()
+    app.zhengshangyou()
+    # app.watch()
     logger.info(f'测试完毕')
 
 
-# 循环刷题
-# def recycle_main_do():
-#     t = time.time()
-#     while True:
-#         try:
-#             start()
-#             break
-#         except Exception as ex:
-#             print("出现如下异常%s" % ex)
-#             app.logout_or_not()
-#             app.driver.close_app()
-#             if time.time() - t > 3600:
-#                 print('程序存在错误，试了一个小时都不行，换下个号码刷')
-#                 break
-
-
 if __name__ == "__main__":
+
+    # 更新题库
     # xuexitiaozhan = Tiku()
     # xuexitiaozhan.get_tiku()
-    user_list = [
-        ['17660082669', 'Nopass.123'],
-        ['18605315732', '000000'],
-        ['17753166732', '000000'],
-    ]
-    for index_u, user in enumerate(user_list):
+
+    # 获取用户名列表
+    user_list = []
+    users_list = []
+    user_value = True
+    for username in usernames.values():
+        # logger.info(username)
+        if user_value:
+            user_list.append(username)
+            user_value = False
+        else:
+            user_list.append(username)
+            users_list.append(user_list)
+            # print(user_list)
+            user_list = []
+            user_value = True
+    print("本次学习以下账号：")
+    print(users_list)
+    # users_list = [
+    #     ['17600000000', 'Nopass.123'],
+    #     ['18600000000', '0000
+    #     00'],
+    #     ['1770000000', '000000'],
+    # ]
+    app = App()
+    for index_u, user in enumerate(users_list):
         # 定义一个APP的启动时间，超时1小时换下一个
         t = time.time()
         while True:
             try:
-                app = App(user[0], user[1])
+                app.initapp(user[0], user[1])
                 start()
+                # test()
                 break
             except Exception as ex:
-                logger.info(f'刷分出现如下异常    %s' % ex)
-                try:
-                    app.logout_or_not()
-                    app.driver.close_app()
-                except Exception as ex:
-                    logger.info(f'退出APP出现如下异常    %s' % ex)
+                logger.info("刷分出现如下错误:")
+                logger.info(ex)
+                if "An unknown server-side error occurred while processing" in str(ex):
+                    try:
+                        logger.info("尝试重启APP")
+                        app.driver.close_app()
+                        app.driver.session.clear()
+                        app.driver.quit()
+                        app = App()
+                    except:
+                        app = App()
+                else:
+                    app.refresh(3)
                 if time.time() - t > 3600:
-                    print('程序存在错误，试了一个小时都不行，换下个号码刷')
                     logger.info(f'程序存在错误，试了一个小时都不行，换下个号码刷')
                     break
     sys.exit(0)
