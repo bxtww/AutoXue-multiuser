@@ -1,16 +1,10 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-"""
-@project: AutoXue-multiuser
-@file: __main__.py
-@time: 2020年9月29日10:55:28
-@Copyright © 2020. All rights reserved.
-"""
+
 import json
+import requests
 from xuexi.unit import cfg, logger
-
-
-# from fuzzywuzzy import fuzz
+from fuzzywuzzy import fuzz
 
 
 class Structure:
@@ -49,154 +43,73 @@ class Bank(Structure):
 
 class TikuQuery:
     def __init__(self):
-        self.dataKu_file = cfg.get('api', 'datajson')
-        with open(self.dataKu_file, 'r', encoding='utf8') as f:
-            self.dataKu = json.load(f)
+        self.dataKu = cfg.get('api', 'datajson')
 
-    def post(self, item):
-
-        # logger.debug(f'POST {item["content"]} {item["options"]} {item["answer"]} {item["excludes"]}...')
-        if "" == item["content"]:
-            logger.debug(f'content is empty')
-            return None
-        # 单选题挑战题一致
-        if item["category"] == "单选题":
-            item["category"] = "挑战题"
-
-        # logger.debug(f'GET {item["content"]}...')
-        # 精确查询答案
-        for dataKuItem in self.dataKu:
-            if dataKuItem['category'] == item["category"] and dataKuItem['content'] == item["content"] and dataKuItem[
-                'options'] == item["options"] and dataKuItem['answer'] != "":
-                return dataKuItem
-            else:
-                continue
-        # 精确查询排除答案的条码
-        for dataKuItem in self.dataKu:
-            if dataKuItem['category'] == item["category"] and dataKuItem['content'] == item["content"] and dataKuItem[
-                'options'] == item["options"] and dataKuItem['excludes'] != "":
-                return dataKuItem
-            else:
-                continue
-        return None
-
-    def query_with_content(self, content):
-
-        # logger.debug(f'POST {item["content"]} {item["options"]} {item["answer"]} {item["excludes"]}...')
-        if "" == content:
-            logger.debug(f'content is empty')
-            return None
-
-        logger.debug(f'query with {content}...')
-        # 精确查找一次
-
-        answer = ""
-        for dataKuItem in self.dataKu:
-            if dataKuItem['content'] == content:
-                if self.dataKu.count(dataKuItem) == 1:
-                    logger.info(f"根据题目找到唯一答案，直接选{dataKuItem['answer']}")
+    def post(self, contentstr, options, dataFile=None):
+        if not dataFile:
+            dataFile = self.dataKu
+        # if "" == item["content"]:
+        #     logger.debug(f'content is empty')
+        with open(dataFile, 'r', encoding='utf8') as f:
+            dataKu = json.load(f)
+        for dataKuItem in dataKu:
+            # if dataKuItem['content'] == contentstr:
+            ratioscore = fuzz.ratio(dataKuItem['content'], contentstr)
+            if ratioscore > 60:
+                # logger.info(dataKuItem['content'] + "  比较  " + contentstr + "得分：")
+                logger.info(f"匹配到题目，得分：{ratioscore}")
+                if options == dataKuItem['options']:
+                    return dataKuItem['answer']
+                elif fuzz.ratio(options, dataKuItem['options']) > 60:
                     return dataKuItem['answer']
                 else:
-                    return ""
-        return answer
-    def post_2(self, item):
-        # logger.debug(f'POST {item["content"]} {item["options"]} {item["answer"]} {item["excludes"]}...')
-        if "" == item["content"]:
-            logger.debug(f'content is empty')
-            return None
-        # 单选题挑战题一致
-        if item["category"] == "单选题":
-            item["category"] = "挑战题"
-        logger.debug(f'GET {item["content"]}...')
-        for dataKuItem in self.dataKu:
-            if dataKuItem['category'] == item["category"] and dataKuItem['content'] == item["content"] and \
-                    dataKuItem[
-                        'options'] == item["options"]:
-                return dataKuItem
+                    logger.info("没有找到匹配答案:")
+                    logger.info(options)
+                    logger.info("题库答案是：")
+                    logger.info(dataKuItem['options'])
+                    logger.info("匹配分数为：")
+                    logger.info(fuzz.ratio(options, dataKuItem['options']))
             else:
                 continue
-        # 如果找不到题目，模糊搜索一次
-        # if item["category"] == "挑战题":
-        #     for dataKuItem in self.dataKu:
-        #         if dataKuItem['category'] == item["category"] and fuzz.ratio(dataKuItem['content'],
-        #                                                                      item["content"]) > 70 and fuzz.ratio(dataKuItem['options'], item["options"]) > 80:
-        #             return dataKuItem
-        #         else:
-        #             continue
-        return None
 
-    def find_excludes_item(self, item):
-
-        logger.debug(f'Find excludes item: {item["content"]}...')
-        for dataKuItem in self.dataKu:
-            if dataKuItem['category'] == item["category"] and dataKuItem['content'] == item["content"] and \
-                    dataKuItem[
-                        'options'] == item["options"] and item["excludes"] != "":
-                return dataKuItem
-            else:
-                continue
-        return None
-
-    def post_precise(self, item):
-        logger.debug(f'POST {item["content"]} {item["options"]} {item["answer"]} {item["excludes"]}...')
-        if "" == item["content"]:
-            logger.debug(f'content is empty')
-            return None
-        # 单选题挑战题一致
-        if item["category"] == "单选题":
-            item["category"] = "挑战题"
-        # if item["excludes"] != "":
-        #     item["answer"] = item["excludes"]
-        #     item["excludes"] = ""
-        logger.debug(f'GET {item["content"]}...')
-        # for dataKuItem in self.dataKu:
-        #     if dataKuItem['category'] == item["category"] and dataKuItem['content'] == item["content"] and dataKuItem['options'] == item["options"] and dataKuItem['answer'] == item["answer"]:
-        #         return dataKuItem
-        #     else:
-        #         continue
-        if self.dataKu.count(item) == 0:
-            return False
-        else:
-            return True
-
-    def put(self, item):
+    def put(self, item, url=None):
+        if not url:
+            url = self.url
         if "" == item["content"]:
             logger.debug(f'content is empty')
             return False
         logger.debug(f'PUT {item["content"]} {item["options"]} {item["answer"]} {item["excludes"]}...')
-        # 单选题挑战题一致
-        if item["category"] == "单选题":
-            item["category"] = "挑战题"
-        # 判断是否是错误答案的题库条目
-        if item["excludes"] != "":
-            excludeItem = self.find_excludes_item(item)
-            if excludeItem is not None:
-                item["excludes"] = item["excludes"] + excludeItem["excludes"]
-                self.dataKu.remove(excludeItem)
         try:
-            out_file = open("./data1.json", "w", encoding='utf8')
-            self.dataKu.append(item)
-            json.dump(self.dataKu, out_file, indent=6, ensure_ascii=False)
-            out_file.close()
-            return True
-        except Exception as ex:
-            logger.info(ex)
+            res = requests.put(url=url, headers=self.headers, json=item)
+            if 201 == res.status_code:
+                logger.info('添加新记录')
+                return True
+            elif 200 == res.status_code:
+                logger.info('更新记录')
+                return True
+            else:
+                logger.debug("PUT do nothing")
+                return False
+        except:
             return False
 
-    def get(self, item):
-
-        # logger.debug(f'POST {item["content"]} {item["options"]} {item["answer"]} {item["excludes"]}...')
+    def get(self, item, url=None):
+        if not url:
+            url = self.url
         if "" == item["content"]:
             logger.debug(f'content is empty')
             return None
-        # 单选题挑战题一致
-        if item["category"] == "单选题":
-            item["category"] = "挑战题"
         logger.debug(f'GET {item["content"]}...')
-        for dataKuItem in self.dataKu:
-            if dataKuItem['category'] == item["category"] and dataKuItem['content'] == item["content"] and dataKuItem[
-                'options'] == item["options"]:
-                return dataKuItem['answer']
+        try:
+            res = requests.post(url=url, headers=self.headers, json=item)
+            if 200 == res.status_code:
+                logger.debug(f'GET item success')
+                # logger.debug(res.text)
+                # logger.debug(json.loads(res.text))
+                return json.loads(res.text)
             else:
-                continue
-        return None
+                logger.debug(f'GET item failure')
+                return None
+        except:
+            logger.debug('request faild')
+            return None

@@ -1,25 +1,27 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 -*-
-
 """
 @project: AutoXue-multiuser
-@file: __main__.py
-@time: 2020年9月29日10:55:28
+@file: updateTiku.py
+@author: Yang
+@contact: https://github.com/yangzuoming/AutoXue-multiuser
+@time: 2020年9月7日
 @Copyright © 2020. All rights reserved.
 """
-
 from __future__ import unicode_literals
 
 import json
-import re
-
 import requests
+from lxml import etree
 from bs4 import BeautifulSoup
+import re
+from xuexi.model_local import TikuQuery
+
+
+# from unit import cfg, logger
+
 
 # 创建题库类
-# from fuzzywuzzy import fuzz
-
-
 class Tiku:
     _fields = ['id', 'category', 'content', 'options', 'answer', 'excludes', 'description']
 
@@ -57,7 +59,6 @@ class Tiku:
         #     return True
         # else:
         #     return False
-
 
     # 获取试题
     def get_tiku(self):
@@ -111,80 +112,10 @@ class Tiku:
         # json.dump(item_all, out_file, indent=6, ensure_ascii=False)
         out_file.write("]\n")
         out_file.close()
-    '''判断错误记录，暂时屏蔽
-    def wrong_clear(self):
-        # 打开题库文件
-        # dataKu_file = cfg.get('api', 'datajson')
-        with open('../data1.json', 'r', encoding='utf8') as f:
-            dataKu = json.load(f)
-        dataKucopy = dataKu.copy()
-        for i in range(len(dataKu) - 1, -1, -1):
-            center = dataKu[i]
-            for p in dataKu[:i]:
-                if p['category'] == '挑战题' and fuzz.ratio(center['content'],
-                                                         p["content"]) > 70 and fuzz.ratio(
-                    center['options'], p["options"]) > 80 and center['excludes'] == p["answer"] and p["answer"] != "":
-                    # if p["answer"] == "":
-                    try:
-                        dataKucopy.remove(p)
-                        print("移除")
-                        print(p)
-                    except:
-                        continue
 
-        out_file = open("../data_back.json", "w", encoding='utf8')
-        json.dump(dataKucopy, out_file, indent=6, ensure_ascii=False)
-        out_file.close()
-    '''
-
-    def _delete_blank(self):
-        # 打开题库文件
-        # dataKu_file = cfg.get('api', 'datajson')
-        with open('../data1.json', 'r', encoding='utf8') as f:
-            dataKu = json.load(f)
-        for dataitem in dataKu:
-            if dataitem['category'] == '挑战题' and dataitem['answer'] == "":
-                try:
-                    dataKu.remove(dataitem)
-                    print("删除", dataitem['content'])
-                except:
-                    continue
-
-        out_file = open("../data_back.json", "w", encoding='utf8')
-        json.dump(dataKu, out_file, indent=6, ensure_ascii=False)
-        out_file.close()
-    '''
-    def duplicate_check(self):
-        # 打开题库文件
-        # dataKu_file = cfg.get('api', 'datajson')
-        with open('../data1.json', 'r', encoding='utf8') as f:
-            dataKu = json.load(f)
-        dataKucopy = dataKu.copy()
-        for i in range(len(dataKu) - 1, -1, -1):
-            center = dataKu[i]
-            for p in dataKu[:i]:
-                #  找到新题库与旧题库内容答案不一致的条目，删除就题库条目
-                if p['category'] == '挑战题' and fuzz.ratio(center['content'],
-                                                         p["content"]) > 90 and fuzz.ratio(
-                    center['options'], p["options"]) > 95 and center['answer'] == p["answer"] and center['answer'] != "":
-
-                # 找到排除答案的重叠条目
-                # if p['category'] == '挑战题' and center['content'] == p["content"] and center['options'] == p["options"] and p["answer"] == center['excludes']:
-                    try:
-                        dataKucopy.remove(p)
-                        print("移除")
-                        print(p)
-                    except:
-                        continue
-
-        out_file = open("../data_back.json", "w", encoding='utf8')
-        json.dump(dataKucopy, out_file, indent=6, ensure_ascii=False)
-        out_file.close()
-    '''
 
 if __name__ == "__main__":
     xuexitiaozhan = Tiku()
-    # xuexitiaozhan.wrong_clear()
-    xuexitiaozhan.duplicate_check()
+    xuexitiaozhan.get_tiku()
     # bq = TikuQuery()
     # bq.post("")
